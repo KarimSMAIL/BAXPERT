@@ -6,33 +6,27 @@ import (
 
 type globalSol map[int][]WO
 
-var num_ot int  //numero des OT
-var num_sol = 1 //numero des solutions
+var num_ot int  //number of OT
+var num_sol = 1 //number of solutions
 
-var solution = globalSol{}           //solution possible
-var score = make(map[int]int)        //scores
-var scoreEmiette = make(map[int]int) //ScoreEmiettement
+var solution = globalSol{}                 //possible solutions
+var score = make(map[int]int)              //scores
+var FragmentationScore = make(map[int]int) //Fragmentation scores
 
-//type des ordres de travailles possible, exemple: {OT1({T1,T2},{D1,D2}) ; OT2({T1,T2,T3},{D2,D3}) ; OT3({T3},{D1,D2,D3})}
-type WOList struct {
-	contributor []contributor //List des intervenents
-	appointment []time.Time   //list des dates possibles
-}
-
-//generer une solution
-func (gS globalSol) OrdreTravail(ots []WOList) {
+//generate a solution
+func (gS globalSol) OrderWork(ots []WOList) {
 	var sol_ot WO
 	var sol []WO
 
 	for _, ot := range ots {
 		sol = nil
-		//attribuer une date à chaque intervenant
-		for _, inte := range ot.contributor {
-			for _, d := range ot.appointment {
-				//il faut tester si l'intervenants est disponible dans cette date
-				if Has_D(inte.availability, d) {
-					sol_ot.contributor = inte
-					sol_ot.Time = d
+		//attribute an appointment of each contributor
+		for _, contr := range ot.contributor {
+			for _, appoit := range ot.appointment {
+				//it's necessary to test if the contributor is available by this date
+				if Has_D(contr.availability, appoit) {
+					sol_ot.contributor = contr
+					sol_ot.Time = appoit
 					sol = append(sol, sol_ot)
 				} else {
 					continue
@@ -49,23 +43,45 @@ func (gS globalSol) SaveMap(sol []WO) {
 	gS[num_ot] = sol
 }
 
+//Make one solution
+func (oti WO) Make_One_Solution(otj WO, n int) {
+	if !oti.Has_OT(solution[n]) {
+		solution[n] = append(solution[n], oti)
+	}
+	if !otj.Has_OT(solution[n]) {
+		solution[n] = append(solution[n], otj)
+	}
+}
+
+//Make all solutions
 func (gS globalSol) MakeSolution() {
 	n := 0
 
-	for _, ots1 := range gS[1] {
-		for _, ots2 := range gS[2] {
-			for _, ots3 := range gS[3] {
-				/*if !ots1.Has_OT(solution[n]) {
-					solution[n] = append(solution[n], ots1)
-				}
-				if !ots2.Has_OT(solution[n]) {
-					solution[n] = append(solution[n], ots2)
-				}
-				if !ots3.Has_OT(solution[n]) {
-					solution[n] = append(solution[n], ots3)
-				}*/
+	for i := 0; i < len(gS)-1; i++ {
+		n = 0
+		for _, oti := range gS[i] {
+			for _, otj := range gS[i+1] {
+				oti.Make_One_Solution(otj, n)
+				n += 1
+			}
+		}
 
+	}
+
+	/*for _, ots1 := range gS[1] {
+	for _, ots2 := range gS[2] {
+		for _, ots3 := range gS[3] {
+			/*if !ots1.Has_OT(solution[n]) {
 				solution[n] = append(solution[n], ots1)
+			}
+			if !ots2.Has_OT(solution[n]) {
+				solution[n] = append(solution[n], ots2)
+			}
+			if !ots3.Has_OT(solution[n]) {
+				solution[n] = append(solution[n], ots3)
+			}*/
+
+	/*solution[n] = append(solution[n], ots1)
 
 				if !(ots1.contributor.id == ots2.contributor.id) {
 					solution[n] = append(solution[n], ots2)
@@ -76,11 +92,11 @@ func (gS globalSol) MakeSolution() {
 				n += 1
 			}
 		}
-	}
+	}*/
 
 }
 
-//check si d de type time.Date in tmp
+//check if d of type time.Date in tmp
 //cannot define new methods on non-local type time.Time
 func Has_D(tmp []time.Time, d time.Time) bool {
 	for _, b := range tmp {
@@ -91,7 +107,7 @@ func Has_D(tmp []time.Time, d time.Time) bool {
 	return false
 }
 
-//niveau de couverture de la solution
+//solution coverage level
 func Score(num_ot int) {
 
 	for i, sol := range solution {
@@ -99,8 +115,8 @@ func Score(num_ot int) {
 	}
 }
 
-//Score d’émiettement
-func ScoreEmiette() {
+//calculate the Fragmentation scores
+func FragScore() {
 	var tmp1 []contributor
 	var tmp2 []time.Time
 
@@ -115,6 +131,6 @@ func ScoreEmiette() {
 				tmp2 = append(tmp2, ot.Time)
 			}
 		}
-		scoreEmiette[i] = len(tmp1) + len(tmp2)
+		FragmentationScore[i] = len(tmp1) + len(tmp2)
 	}
 }
