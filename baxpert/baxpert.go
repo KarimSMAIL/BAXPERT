@@ -57,7 +57,7 @@ func (oti WO) Make_One_Solution(otj WO, n int) {
 func (gS globalSol) MakeSolution() {
 	n := 0
 
-	for i := 0; i < len(gS)-1; i++ {
+	for i := 0; i < len(gS); i++ {
 		n = 0
 		for _, oti := range gS[i] {
 			for _, otj := range gS[i+1] {
